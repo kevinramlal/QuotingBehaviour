@@ -30,23 +30,28 @@ def list_from_csv(input_file):
 	return mylist
 
 
-class stock_data:
-	def __init__(self,quotes_file,trades_file,dir = my_dir):
+class quote_wrangler:
+	def __init__(self,quotes_file,dir = my_dir):
 		'''
 		quotes_file - csv file location
 		trades_file - csv file location
 		'''
 		self.my_dir = my_dir
 		self.quotes_df = pd.read_csv(quotes_file, low_memory = False)
-		self.trade_df = pd.read_csv(trades_file, low_memory = False)
 		self.exchange_map = dict_create(self.my_dir + '.\exchange_code_dict.csv')
-		self.quotes_df['DateTime'] = self.quotes_df['DATE'].map(str)+ ' ' + self.quotes_df['TIME_M'].map(str)
+		self.quotes_df['DateTime'] = self.quotes_df['DATE'].map(str)
 		self.quotes_df['DateTime'] = self.quotes_df['DateTime'].apply(lambda x: \
-			datetime.strptime(x[:-3], "%Y%m%d %H:%M:%S.%f"))
+			datetime.strptime(x[:], "%Y%m%d"))
 		self.quotes_df['Time'] = self.quotes_df['TIME_M'].apply(lambda x: \
 			datetime.strptime(x[:-3], "%H:%M:%S.%f").time().isoformat())
 		self.quotes_cols = list_from_csv(self.my_dir + '.\quotes_columns.csv')
 		self.quotes_df = self.quotes_df[self.quotes_cols]
+
+	def BBO_series(self):
+		"""
+		Returns a dataframe that contains ONLY BBOs
+		"""
+		return self.quotes_df[self.quotes_df['NATBBO_IND'] ==4]
 
 
 def main():
