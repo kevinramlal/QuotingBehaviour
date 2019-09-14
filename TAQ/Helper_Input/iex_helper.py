@@ -51,7 +51,9 @@ class quote_wrangler:
 		"""
 		Returns a dataframe that contains ONLY BBOs
 		"""
-		return self.quotes_df[self.quotes_df['NATBBO_IND'] ==4]
+		#FIRST filter only qu_conditions for O ,R, or Y
+		# temp = self.quotes_df[self.quotes_df['QU_COND'] in ('O','R','Y')]
+		return self.quotes_df[(self.quotes_df['NATBBO_IND'] ==4) and (self.quotes_df['NATBBO_IND'] ==2)]
 
 
 def main():
