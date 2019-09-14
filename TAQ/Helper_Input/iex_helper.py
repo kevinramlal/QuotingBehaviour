@@ -47,13 +47,17 @@ class quote_wrangler:
 		self.quotes_cols = list_from_csv(self.my_dir + '.\quotes_columns.csv')
 		self.quotes_df = self.quotes_df[self.quotes_cols]
 
-	def BBO_series(self):
+	def BBO_series(self, use_two = False):
 		"""
 		Returns a dataframe that contains ONLY BBOs
 		"""
 		#FIRST filter only qu_conditions for O ,R, or Y
-		# temp = self.quotes_df[self.quotes_df['QU_COND'] in ('O','R','Y')]
-		return self.quotes_df[(self.quotes_df['NATBBO_IND'] ==4) and (self.quotes_df['NATBBO_IND'] ==2)]
+		temp = self.quotes_df[(self.quotes_df['QU_COND'] == 'O') | (self.quotes_df['QU_COND'] == 'R') | (self.quotes_df['QU_COND'] == 'Y')]
+		if use_two:
+			return temp[(temp['NATBBO_IND'] ==4) | (temp['NATBBO_IND'] ==2)]
+		else:
+			return temp[(temp['NATBBO_IND'] ==4)]
+			
 
 
 def main():
