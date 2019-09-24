@@ -49,15 +49,9 @@ class quote_wrangler:
 
 	def BBO_series(self):
 		"""
-		Returns a dataframe that contains ONLY BBOs
+		Returns a dataframe that contains ONLY BBO eligible Quotes
 		"""
-		#FIRST filter only qu_conditions for O ,R, or Y
 		temp = self.quotes_df[(self.quotes_df['QU_COND'] == 'O') | (self.quotes_df['QU_COND'] == 'R') | (self.quotes_df['QU_COND'] == 'Y')]
-		#I dont think using 2 and 4 is right
-		# if use_two:
-		# 	return temp[(temp['NATBBO_IND'] ==4) | (temp['NATBBO_IND'] ==2)]
-		# else:
-		# 	return temp[(temp['NATBBO_IND'] ==4)]
 		return temp 
 	
 
@@ -96,20 +90,6 @@ class quote_wrangler:
 		master_df = pd.DataFrame(master)
 		master_df.columns = ['Time','Exchanges','NBB','Bid Size Total', 'Best Ask', 'Ask Vol']
 		return master_df
-
-
-	def BBO_tracker(self,EX):
-		"""
-		Want to keep track of Best bid, exchange, size (both by exchange and total), time of update, (START WITH JUST BID)
-		"""
-		filtered_df = self.BBO_series(use_two =True)
-		return filtered_df[[filtered_df['EX'] == EX]]		
-		# cols = ['DateTime','Time','EX','BID','BIDSIZ','ASK','ASKSIZ']
-		# tracker_template = np.array(filtered_df[cols][0])
-		# for q in range(1,len(filtered_df)):
-		# 	if filtered_df['BID'][q] == tracker_template[q-1][3]:
-		# 		exchanges_at_NBB = np.array(filtered_df[q-1])
-		# return q
 
 
 def main():
