@@ -88,7 +88,7 @@ class quote_wrangler:
 				master.append([time,exchanges,best_bid,bid_vol,best_ask,ask_vol])
 				prev_best_bid = best_bid
 		master_df = pd.DataFrame(master)
-		master_df.columns = ['Time','Exchanges','NBB','Bid Size Total', 'Best Ask', 'Ask Vol']
+		master_df.columns = ['Time','Exchanges','National Best Bid','Bid Size Total', 'Best Ask', 'Ask Vol']
 		return master_df
 
 
