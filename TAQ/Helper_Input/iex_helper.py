@@ -30,11 +30,26 @@ def list_from_csv(input_file):
 	return mylist
 
 
-class quote_wrangler:
+
+class Quote_Wrangler:
+	"""
+	The Quote_Wrangler class is designed to take in a "quotes" file as downloaded from the TAQ database - and extract
+	a time series of National Best Bid/Offer adjustments during a trading day. 
+	"""
 	def __init__(self,quotes_file,dir = my_dir):
 		'''
-		quotes_file - csv file location
-		trades_file - csv file location
+
+		Intitialization -----------------------------------------------------------------------------------------------
+		
+		The "quotes_file" input must include the file location - reccomendation is to use dynamic referencing as follows:
+		"../Training_Files/<filenames>.csv"
+
+		The exchange map is a a transcodification between exchanges/trading venues, and the exchange codes in the TAQ files
+
+		the quotes_columns csv file defines what columns from the TAQ quote file we want to keep - as there are initially quite alot.
+		To alter which columns we keep, simply edit the quotes_column file, found in the same location as the Quote_Wrangler class
+
+
 		'''
 		self.my_dir = my_dir
 		self.quotes_df = pd.read_csv(quotes_file, low_memory = False)
@@ -49,47 +64,118 @@ class quote_wrangler:
 
 	def BBO_series(self):
 		"""
-		Returns a dataframe that contains ONLY BBO eligible Quotes
+
+		Returns a dataframe that contains ONLY BB0 eligible Quotes as outlined by QU_COND codes 'O','R','Y'.
+		For more information see the TAQ Reference guide.  https://www.nyse.com/publicdocs/nyse/data/Daily_TAQ_Client_Spec_v3.0.pdf
+
 		"""
 		temp = self.quotes_df[(self.quotes_df['QU_COND'] == 'O') | (self.quotes_df['QU_COND'] == 'R') | (self.quotes_df['QU_COND'] == 'Y')]
 		return temp 
 	
 
-	def NBB_combiner(self):
+	def NB_combiner(self):
+		"""
+
+		Core function that breaks out quotes that adjust something related to either the National Best Bid or the 
+		National Best Offer, whether that be the actual price of the NBB/NBO or the quantity at the current NBB/NBO.
+
+		Using this function we can determine when exchanges join the NBB/NBO or create.
+		"""
 		filtered_df = self.BBO_series()
 		#[bid,bid_size,ask,ask_size]
 		ex_bid_price = {k:0 for k in self.exchange_map.keys()}
 		ex_bid_size = ex_bid_price.copy()
-		ex_ask_price = ex_bid_price.copy()
+		ex_ask_price = {k:10e7 for k in self.exchange_map.keys()}
 		ex_ask_size = ex_bid_price.copy()
 		master = []
 		# cols = ['BID','BIDSIZ','ASK','ASKSIZ']
-		cols = ['BID']
 		prev_best_bid = 0
+		prev_best_offer = 10000000000
+
+		prev_bid_total = 0
+		prev_ask_total = 0
 		for msg in range(len(filtered_df)):
 			#update dictionaries
 			ex_bid_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['BID'].iloc[msg]) #update dict
 			ex_bid_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['BIDSIZ'].iloc[msg]) #update dict
 			ex_ask_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASK'].iloc[msg]) #update dict
 			ex_ask_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASKSIZ'].iloc[msg]) #update dict
-			itemMaxValue = max(ex_bid_price.items(), key=lambda x: x[1]) #find new max 
+			itemMaxBid = max(ex_bid_price.items(), key=lambda x: x[1]) #find new max 
+			itemMaxOffer = min(ex_ask_price.items(), key=lambda x: x[1]) #find new min 
 			ex_at_nbb = list()
-			# Iterate over all the items in dictionary to find keys with max value
+			ex_at_nbo = list()
+			# Iterate over all the items in dictionary to find keys with max bid
 			for key, value in ex_bid_price.items():
-				if value == itemMaxValue[1]:
+				if value == itemMaxBid[1]:
 					ex_at_nbb.append(key) #there should always be one max?
-			if itemMaxValue[1] != prev_best_bid:
-				best_bid = itemMaxValue[1]
-				bid_vol = sum(ex_bid_size[ex] for ex in ex_at_nbb)
-				best_ask = ex_ask_price[ex_at_nbb[0]] #not sure 
-				ask_vol = sum(ex_ask_size[ex] for ex in ex_at_nbb) #notsure 
-				exchanges = ex_at_nbb
+			for key, value in ex_ask_price.items():
+				if value == itemMaxOffer[1]:
+					ex_at_nbo.append(key) #there should always be one max?
+			
+			bid_vol_total = sum(ex_bid_size[ex] for ex in ex_at_nbb)
+			ask_vol_total = sum(ex_ask_size[ex] for ex in ex_at_nbo)
+
+			if ((float(itemMaxBid[1]) != float(prev_best_bid)) | (float(itemMaxOffer[1]) != float(prev_best_offer)))| ((bid_vol_total != prev_bid_total) | (ask_vol_total != prev_ask_total)): #need to check changes in vol as well?
+				bid = itemMaxBid[1]
+				exchanges_nbb = ex_at_nbb
+				bid_vol_by_ex = [ex_bid_size[ex] for ex in ex_at_nbb]
+				bid_vol_total = sum(ex_bid_size[ex] for ex in ex_at_nbb)
+				
+				ask = itemMaxOffer[1] #not sure 
+				exhanges_nbo = ex_at_nbo
+				ask_vol_by_ex = [ex_ask_size[ex] for ex in ex_at_nbo]
+				ask_vol_total = sum(ex_ask_size[ex] for ex in ex_at_nbo)
+				
 				time = filtered_df['Time'].iloc[msg]
-				master.append([time,exchanges,best_bid,bid_vol,best_ask,ask_vol])
-				prev_best_bid = best_bid
+				if (itemMaxBid[1] != prev_best_bid):
+					flag = "NBB"
+				else:
+					flag = "NBO"
+				master.append([time,exchanges_nbb,bid_vol_by_ex,bid_vol_total,bid,ask,ask_vol_total,ask_vol_by_ex,exhanges_nbo,flag])
+				prev_best_bid = bid
+				prev_best_offer = ask
+				prev_bid_total = bid_vol_total
+				prev_ask_total = ask_vol_total
+
 		master_df = pd.DataFrame(master)
-		master_df.columns = ['Time','Exchanges','National Best Bid','Bid Size Total', 'Best Ask', 'Ask Vol']
+		master_df.columns = ['Time','B_Exchanges','B_Vol_Ex','B_Vol_Tot','Bid','Ask','A_Vol_Tot','A_Vol_Ex','A_Exchanges','Flag']
 		return master_df
+
+	# def NBO_combiner(self): #OLD VERSION DONT SCREW THIS ONE UP 
+	# 	filtered_df = self.BBO_series()
+	# 	#[bid,bid_size,ask,ask_size]
+	# 	ex_bid_price = {k:0 for k in self.exchange_map.keys()}
+	# 	ex_bid_size = ex_bid_price.copy()
+	# 	ex_ask_price = ex_bid_price.copy()
+	# 	ex_ask_size = ex_bid_price.copy()
+	# 	master = []
+	# 	# cols = ['BID','BIDSIZ','ASK','ASKSIZ']
+	# 	cols = ['BID']
+	# 	prev_best_bid = 0
+	# 	for msg in range(len(filtered_df)):
+	# 		#update dictionaries
+	# 		ex_bid_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['BID'].iloc[msg]) #update dict
+	# 		ex_bid_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['BIDSIZ'].iloc[msg]) #update dict
+	# 		ex_ask_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASK'].iloc[msg]) #update dict
+	# 		ex_ask_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASKSIZ'].iloc[msg]) #update dict
+	# 		itemMaxBid = max(ex_bid_price.items(), key=lambda x: x[1]) #find new max 
+	# 		ex_at_nbb = list()
+	# 		# Iterate over all the items in dictionary to find keys with max value
+	# 		for key, value in ex_bid_price.items():
+	# 			if value == itemMaxBid[1]:
+	# 				ex_at_nbb.append(key) #there should always be one max?
+	# 		if itemMaxBid[1] != prev_best_bid:
+	# 			best_bid = itemMaxValue[1]
+	# 			bid_vol = sum(ex_bid_size[ex] for ex in ex_at_nbb)
+	# 			best_ask = ex_ask_price[ex_at_nbb[0]] #not sure 
+	# 			ask_vol = sum(ex_ask_size[ex] for ex in ex_at_nbb) #notsure 
+	# 			exchanges = ex_at_nbb
+	# 			time = filtered_df['Time'].iloc[msg]
+	# 			master.append([time,exchanges,best_bid,bid_vol,best_ask,ask_vol])
+	# 			prev_best_bid = best_bid
+	# 	master_df = pd.DataFrame(master)
+	# 	master_df.columns = ['Time','Exchanges','National Best Bid','Bid Size Total', 'Best Ask', 'Ask Vol']
+	# 	return master_df
 
 
 def main():
