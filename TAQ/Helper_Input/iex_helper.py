@@ -61,6 +61,9 @@ class Quote_Wrangler:
 			datetime.strptime(x[:-3], "%H:%M:%S.%f").time().isoformat())
 		self.quotes_cols = list_from_csv(self.my_dir + '.\quotes_columns.csv')
 		self.quotes_df = self.quotes_df[self.quotes_cols]
+		self.NB_master = self.NB_combiner()
+		self.NBB  = self.NB_master[self.NB_master.Flag == 'NBB']
+		self.NBO = self.NB_master[self.NB_master.Flag == 'NBO']
 
 	def BBO_series(self):
 		"""
@@ -140,6 +143,54 @@ class Quote_Wrangler:
 		master_df = pd.DataFrame(master)
 		master_df.columns = ['Time','B_Exchanges','B_Vol_Ex','B_Vol_Tot','Bid','Ask','A_Vol_Tot','A_Vol_Ex','A_Exchanges','Flag']
 		return master_df
+
+	def create_join_flagger(self,nb_df,nbb_flag = True):
+		"""either feed in NBO or NBB only dataframes
+		nb_df is either NBO or NBB df
+		NBB_flag True when using NBB data, False for NBO"""
+		temp = nb_df.copy()
+		creates = ['']
+		joins = ['']
+		# fallback = ['']
+		if nbb_flag:
+			ex_side = 'B_Exchanges'
+			side = 'Bid'
+			vol = 'B_Vol_Tot'
+			vol_ex = 'B_Vol_Ex'
+			way = 1 #using this we can switch from < to > when comparing previous levels (< is for Bids, > is for Asks)
+		else:
+			ex_side = 'A_Exchanges'
+			side = 'Ask'
+			vol = 'A_Vol_Tot'
+			vol_ex = 'A_Vol_Ex'
+			way = -1
+
+		for i in range(1,len(nb_df)):
+			create_instance = ''
+			join_instance = ''
+			# fallback = ''
+
+			if way*nb_df.iloc[i][side] < way*nb_df.iloc[i-1][side]:
+				create_instance = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
+			elif (nb_df.iloc[i][side] == nb_df.iloc[i-1][side]):
+				prev_status_dict = dict(zip(nb_df.iloc[i-1][ex_side],nb_df.iloc[i-1][vol_ex]))
+				current_status_dict = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
+				join_instance = {k:v for k in current_status_dict.keys() if k not in prev_status_dict.keys()}
+
+				# joining_exchanges = [ex for ex in nb_df.iloc[i][ex_side] if ex not in nb_df.iloc[i-1][ex_side]]
+				# joining_amount = float(nb_df.iloc[i][vol]) - float(nb_df.iloc[i-1][vol])
+				# join_instance = [joining_exchanges,joining_amount]
+			creates.append(create_instance)
+			joins.append(join_instance)
+
+		temp['Creates'] = creates
+		temp['Joins'] = joins
+
+		return temp
+
+
+
+
 
 	# def NBO_combiner(self): #OLD VERSION DONT SCREW THIS ONE UP 
 	# 	filtered_df = self.BBO_series()
