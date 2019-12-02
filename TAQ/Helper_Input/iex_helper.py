@@ -190,8 +190,6 @@ class Quote_Wrangler:
 
 
 
-
-
 	# def NBO_combiner(self): #OLD VERSION DONT SCREW THIS ONE UP 
 	# 	filtered_df = self.BBO_series()
 	# 	#[bid,bid_size,ask,ask_size]
@@ -227,6 +225,41 @@ class Quote_Wrangler:
 	# 	master_df = pd.DataFrame(master)
 	# 	master_df.columns = ['Time','Exchanges','National Best Bid','Bid Size Total', 'Best Ask', 'Ask Vol']
 	# 	return master_df
+
+
+"""---------------------TRADE WRANGLER CLASS------------------------------------"""
+
+class Trade_Wrangler():
+	def __init__(self,trade_file):
+		self.trades = pd.read_csv(trade_file)
+		self.my_dir = my_dir
+		self.exchange_map = dict_create(self.my_dir + '.\exchange_code_dict.csv')
+		self.trades['DateTime'] = self.trades['DATE'].map(str)
+		self.trades['DateTime'] = self.trades['DateTime'].apply(lambda x: \
+			datetime.strptime(x[:], "%Y%m%d"))
+		self.trades['Time'] = self.trades['TIME_M'].apply(lambda x: \
+			datetime.strptime(x[:-3], "%H:%M:%S.%f").time().isoformat())
+		self.columns = ['DateTime','Time','EX','SYM_ROOT','TR_SCOND','SIZE','PRICE','TR_CORR','TR_SOURCE','TR_RF']
+		self.trades = self.trades[self.columns]
+
+
+	def trade_finder(self,time,num_trades,time_after = 0):
+		"""return db of trades executed after a specified time. 
+		Either take x num of trades after or grab all trades that executed up to a certain number 
+		of miutes after
+
+		time - should be taken from Time column in quotes db
+		num_trades - integer
+		time_after - should be in second (note that like 1 minute will yeild thousands of results lol)
+
+		"""
+		if time_after == 0:
+			return self.trades[self.trades.Time > time].head(num_trades)
+		else:
+			new_time = (datetime.strptime(time[:-3], "%H:%M:%S.%f") +  pd.Timedelta(seconds = time_after)).time().isoformat()
+			return self.trades[(self.trades.Time > time) & (self.trades.Time < new_time)]
+		
+
 
 
 def main():
