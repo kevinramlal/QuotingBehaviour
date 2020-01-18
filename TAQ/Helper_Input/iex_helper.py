@@ -83,7 +83,7 @@ class Quote_Wrangler:
 
 	def NB_combiner(self, exchange_filter = ''):
 		"""
-	
+		#Ready for Cythonification
 		Core function that breaks out quotes that adjust something related to either the National Best Bid or the 
 		National Best Offer, whether that be the actual price of the NBB/NBO or the quantity at the current NBB/NBO.
 
@@ -192,52 +192,101 @@ class Quote_Wrangler:
 		# for i in 
 		return exchange_BBO 
 
-	def create_join_flagger(self,nb_df,nbb_flag = True):
-		###not correct - need to work with book by exchange####
 
-		"""either feed in NBO or NBB only dataframes
-		nb_df is either NBO or NBB df
-		NBB_flag True when using NBB data, False for NBO"""
-		temp = nb_df.copy()
-		creates = ['']
-		joins = ['']
-		# fallback = ['']
+	def cj_flagger(self,nb_df,nbb_flag = True):
+		"""
+		Function that identifies instances of creation/joining
+		"""
+		create_master = ['']
+		join_master = ['']
 		if nbb_flag:
 			ex_side = 'B_Exchanges'
 			side = 'Bid'
 			vol = 'B_Vol_Tot'
 			vol_ex = 'B_Vol_Ex'
-			way = 1 #using this we can switch from < to > when comparing previous levels (< is for Bids, > is for Asks)
+
 		else:
 			ex_side = 'A_Exchanges'
 			side = 'Ask'
 			vol = 'A_Vol_Tot'
 			vol_ex = 'A_Vol_Ex'
-			way = -1
 
+		start_price = nb_df.iloc[0][side]
 		for i in range(1,len(nb_df)):
-			create_instance = ''
-			join_instance = ''
-			# fallback = ''
+		    cur_line = nb_df.iloc[i]
+		    cur_price = cur_line[side]
+		    if cur_price != start_price:
+		        start_price = cur_price
+		        create_master.append([''])
+		        join_master.append([''])
+		        continue
+		    prev_line = nb_df.iloc[i-1]
+		    prev_state = dict(zip(prev_line[ex_side],prev_line[vol_ex]))
+		    cur_state = dict(zip(cur_line[ex_side],cur_line[vol_ex]))
+		    
+		    creates = {i:v for i,v in cur_state.items() if i not in prev_state.keys()}
+		    joins = {i:(cur_state[i] - prev_state[i]) for i in cur_state.keys() if (i in prev_state.keys()) and ((cur_state[i] - prev_state[i]) > 0)}
+		    
+		    create_master.append(creates)
+		    join_master.append(joins)
 
-			if way*nb_df.iloc[i][side] > way*nb_df.iloc[i-1][side]:
-				create_instance = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
-			elif (nb_df.iloc[i][side] == nb_df.iloc[i-1][side]):
-				prev_status_dict = dict(zip(nb_df.iloc[i-1][ex_side],nb_df.iloc[i-1][vol_ex]))
-				current_status_dict = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
-				join_instance = {k:v for k,v in current_status_dict.items() if k not in prev_status_dict.keys()}
+		nb_df['Creates'] = create_master
+		nb_df['Joins'] = join_master
+		
+		return nb_df
 
-				# joining_exchanges = [ex for ex in nb_df.iloc[i][ex_side] if ex not in nb_df.iloc[i-1][ex_side]]
-				# joining_amount = float(nb_df.iloc[i][vol]) - float(nb_df.iloc[i-1][vol])
-				# join_instance = [joining_exchanges,joining_amount]
 
-			creates.append(create_instance)
-			joins.append(join_instance)
+	# def create_join_flagger(self,nb_df,nbb_flag = True):
+	#Archived
+	# 	#TODO: join - only increases in volume!!
+	# 	#check why empty dictionaries in creates
+	# 		#COLUMNS are backwards 
 
-		temp['Creates'] = creates
-		temp['Joins'] = joins
+	# 	###not correct - need to work with book by exchange####
 
-		return temp
+	# 	"""either feed in NBO or NBB only dataframes
+	# 	nb_df is either NBO or NBB df
+	# 	NBB_flag True when using NBB data, False for NBO"""
+	# 	temp = nb_df.copy()
+	# 	creates = ['']
+	# 	joins = ['']
+	# 	# fallback = ['']
+	# 	if nbb_flag:
+	# 		ex_side = 'B_Exchanges'
+	# 		side = 'Bid'
+	# 		vol = 'B_Vol_Tot'
+	# 		vol_ex = 'B_Vol_Ex'
+	# 		way = 1 #using this we can switch from < to > when comparing previous levels (< is for Bids, > is for Asks)
+	# 	else:
+	# 		ex_side = 'A_Exchanges'
+	# 		side = 'Ask'
+	# 		vol = 'A_Vol_Tot'
+	# 		vol_ex = 'A_Vol_Ex'
+	# 		way = -1
+
+	# 	for i in range(1,len(nb_df)):
+	# 		create_instance = ''
+	# 		join_instance = ''
+	# 		# fallback = ''
+
+	# 		if way*nb_df.iloc[i][side] > way*nb_df.iloc[i-1][side]:
+	# 			create_instance = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
+	# 		elif (nb_df.iloc[i][side] == nb_df.iloc[i-1][side]):
+	# 			prev_status_dict = dict(zip(nb_df.iloc[i-1][ex_side],nb_df.iloc[i-1][vol_ex]))
+	# 			current_status_dict = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
+	# 			join_instance = {k:v for k,v in current_status_dict.items() if k not in prev_status_dict.keys()}
+
+	# 			# joining_exchanges = [ex for ex in nb_df.iloc[i][ex_side] if ex not in nb_df.iloc[i-1][ex_side]]
+	# 			# joining_amount = float(nb_df.iloc[i][vol]) - float(nb_df.iloc[i-1][vol])
+	# 			# join_instance = [joining_exchanges,joining_amount]
+
+	# 		creates.append(create_instance)
+	# 		joins.append(join_instance)
+
+	# 	temp['Creates'] = creates
+	# 	temp['Joins'] = joins
+
+	# 	return temp
 
 
 
