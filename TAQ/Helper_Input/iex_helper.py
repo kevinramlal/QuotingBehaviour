@@ -52,8 +52,7 @@ class Quote_Wrangler:
 
 
 		'''
-		self.my_dir = os.path.abspath(__file__) #directory 
-		print("CHECK HERE:",self.my_dir)
+		self.my_dir	= my_dir	
 		self.quotes_df = pd.read_csv(quotes_file, low_memory = False) #TAQ Quotes file 
 		self.exchange_map = dict_create(self.my_dir + '.\exchange_code_dict.csv') #copied from NYSE TAQ Documentation
 
@@ -176,6 +175,15 @@ class Quote_Wrangler:
 
 	def exchange_analysis(self,exchange_BBO,NBBO):
 		#first find the NBBO at each point in time of the exchange BBO
+		nbb_list = []
+		nbo_list = []
+		for i in range(len(exchange_BBO)):
+
+			time = exchange_BBO.Time.iloc[i]
+			nbbo = NBBO[NBBO.Time <= time].tail(1)
+			nbb = float(nbbo.Bid)
+			nbo = float(nbbo.Ask)
+			nbb_list.append(nbo)
 
 		exchange_BBO['NBB'] = exchange_BBO.Time.apply(lambda x : NBBO[NBBO.Time <= x].Bid.tail(1))
 		# BO = exchange_BBO[exchange_BBO.flag == 'NBB']
