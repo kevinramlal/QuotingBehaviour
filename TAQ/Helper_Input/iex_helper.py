@@ -193,19 +193,23 @@ class Quote_Wrangler:
 		return exchange_BBO 
 
 
-	def cj_flagger(self,nb_df,nbb_flag = True):
+	def cj_flagger(self,nbb_flag = True):
 		"""
-		Function that identifies instances of creation/joining
+		Function that identifies instances of creation/joining. 
+		nb_df - either the NBB only or NBO only dataframe
+		nbb_flag - True if using NBB or False for NBO 
 		"""
 		create_master = ['']
 		join_master = ['']
 		if nbb_flag:
+			nb_df = self.NB_master[self.NB_master.Flag == 'NBB']
 			ex_side = 'B_Exchanges'
 			side = 'Bid'
 			vol = 'B_Vol_Tot'
 			vol_ex = 'B_Vol_Ex'
 
 		else:
+			nb_df = self.NB_master[self.NB_master.Flag == 'NBO']
 			ex_side = 'A_Exchanges'
 			side = 'Ask'
 			vol = 'A_Vol_Tot'
