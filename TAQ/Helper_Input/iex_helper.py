@@ -233,13 +233,14 @@ class Quote_Wrangler:
         vol_ex_idx = np.where(cols == vol_ex)[0][0]
 
         start_price = nb_df.iloc[0][side]
-        for i, cur_line in enumerate(nb_df.itertuples(index=False)):
+        for i, cur_line in enumerate(nb_df.itertuples(index = False)):
             cur_price = cur_line[side_idx]
             if i == 0:
                 prev_line = cur_line
                 continue
             if cur_price != start_price:
                 start_price = cur_price
+                prev_line = cur_line
                 create_master.append([''])
                 join_master.append([''])
                 continue
