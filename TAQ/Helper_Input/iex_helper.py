@@ -1,11 +1,12 @@
 ###DataFrame Preperation for IEX Class
-
+from collections import defaultdict
 import pandas as pd
 import numpy as np
 import sklearn as sk
 import sys, os
 import csv
 from datetime import datetime
+
 import os
 
 '''
@@ -63,6 +64,7 @@ class Quote_Wrangler:
         # time formatting
         self.quotes_df['DateTime'] = pd.to_datetime(self.quotes_df['DATE'], format="%Y%m%d")
         self.quotes_df['Time'] = pd.to_datetime(self.quotes_df['TIME_M'], format='%H:%M:%S.%f')
+        self.quotes_df['Time'] = self.quotes_df['Time'].apply(lambda x: str(x.time())) #gets just the time 
 
         # list of columns to be used - can edit in file
         self.quotes_cols = list_from_csv(self.my_dir + '.\quotes_columns.csv')
@@ -241,8 +243,8 @@ class Quote_Wrangler:
             if cur_price != start_price:
                 start_price = cur_price
                 prev_line = cur_line
-                create_master.append([''])
-                join_master.append([''])
+                create_master.append('')
+                join_master.append('')
                 continue
             prev_state = dict(zip(prev_line[ex_side_idx], prev_line[vol_ex_idx]))
             cur_state = dict(zip(cur_line[ex_side_idx], cur_line[vol_ex_idx]))
@@ -251,6 +253,11 @@ class Quote_Wrangler:
             joins = {i: (cur_state[i] - prev_state[i]) for i in cur_state.keys() if
                      (i in prev_state.keys()) and ((cur_state[i] - prev_state[i]) > 0)}
 
+            if creates == {}:
+            	creates = ''
+            if joins == {}:
+            	joins = '' 
+            
             create_master.append(creates)
             join_master.append(joins)
             prev_line = cur_line
@@ -259,97 +266,6 @@ class Quote_Wrangler:
         nb_df['Joins'] = join_master
 
         return nb_df
-
-# def create_join_flagger(self,nb_df,nbb_flag = True):
-
-
-# Archived
-# 	#TODO: join - only increases in volume!!
-# 	#check why empty dictionaries in creates
-# 		#COLUMNS are backwards
-
-# 	###not correct - need to work with book by exchange####
-
-# 	"""either feed in NBO or NBB only dataframes
-# 	nb_df is either NBO or NBB df
-# 	NBB_flag True when using NBB data, False for NBO"""
-# 	temp = nb_df.copy()
-# 	creates = ['']
-# 	joins = ['']
-# 	# fallback = ['']
-# 	if nbb_flag:
-# 		ex_side = 'B_Exchanges'
-# 		side = 'Bid'
-# 		vol = 'B_Vol_Tot'
-# 		vol_ex = 'B_Vol_Ex'
-# 		way = 1 #using this we can switch from < to > when comparing previous levels (< is for Bids, > is for Asks)
-# 	else:
-# 		ex_side = 'A_Exchanges'
-# 		side = 'Ask'
-# 		vol = 'A_Vol_Tot'
-# 		vol_ex = 'A_Vol_Ex'
-# 		way = -1
-
-# 	for i in range(1,len(nb_df)):
-# 		create_instance = ''
-# 		join_instance = ''
-# 		# fallback = ''
-
-# 		if way*nb_df.iloc[i][side] > way*nb_df.iloc[i-1][side]:
-# 			create_instance = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
-# 		elif (nb_df.iloc[i][side] == nb_df.iloc[i-1][side]):
-# 			prev_status_dict = dict(zip(nb_df.iloc[i-1][ex_side],nb_df.iloc[i-1][vol_ex]))
-# 			current_status_dict = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
-# 			join_instance = {k:v for k,v in current_status_dict.items() if k not in prev_status_dict.keys()}
-
-# 			# joining_exchanges = [ex for ex in nb_df.iloc[i][ex_side] if ex not in nb_df.iloc[i-1][ex_side]]
-# 			# joining_amount = float(nb_df.iloc[i][vol]) - float(nb_df.iloc[i-1][vol])
-# 			# join_instance = [joining_exchanges,joining_amount]
-
-# 		creates.append(create_instance)
-# 		joins.append(join_instance)
-
-# 	temp['Creates'] = creates
-# 	temp['Joins'] = joins
-
-# 	return temp
-
-
-# def NBO_combiner(self): #OLD VERSION DONT SCREW THIS ONE UP
-# 	filtered_df = self.BBO_series()
-# 	#[bid,bid_size,ask,ask_size]
-# 	ex_bid_price = {k:0 for k in self.exchange_map.keys()}
-# 	ex_bid_size = ex_bid_price.copy()
-# 	ex_ask_price = ex_bid_price.copy()
-# 	ex_ask_size = ex_bid_price.copy()
-# 	master = []
-# 	# cols = ['BID','BIDSIZ','ASK','ASKSIZ']
-# 	cols = ['BID']
-# 	prev_best_bid = 0
-# 	for msg in range(len(filtered_df)):
-# 		#update dictionaries
-# 		ex_bid_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['BID'].iloc[msg]) #update dict
-# 		ex_bid_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['BIDSIZ'].iloc[msg]) #update dict
-# 		ex_ask_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASK'].iloc[msg]) #update dict
-# 		ex_ask_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASKSIZ'].iloc[msg]) #update dict
-# 		itemMaxBid = max(ex_bid_price.items(), key=lambda x: x[1]) #find new max
-# 		ex_at_nbb = list()
-# 		# Iterate over all the items in dictionary to find keys with max value
-# 		for key, value in ex_bid_price.items():
-# 			if value == itemMaxBid[1]:
-# 				ex_at_nbb.append(key) #there should always be one max?
-# 		if itemMaxBid[1] != prev_best_bid:
-# 			best_bid = itemMaxValue[1]
-# 			bid_vol = sum(ex_bid_size[ex] for ex in ex_at_nbb)
-# 			best_ask = ex_ask_price[ex_at_nbb[0]] #not sure
-# 			ask_vol = sum(ex_ask_size[ex] for ex in ex_at_nbb) #notsure
-# 			exchanges = ex_at_nbb
-# 			time = filtered_df['Time'].iloc[msg]
-# 			master.append([time,exchanges,best_bid,bid_vol,best_ask,ask_vol])
-# 			prev_best_bid = best_bid
-# 	master_df = pd.DataFrame(master)
-# 	master_df.columns = ['Time','Exchanges','National Best Bid','Bid Size Total', 'Best Ask', 'Ask Vol']
-# 	return master_df
 
 
 """---------------------TRADE WRANGLER CLASS------------------------------------"""
@@ -394,6 +310,27 @@ class Trade_Wrangler():
         trades = self.trade_finder(time, num_trades, time_after)
         return sum(trades['SIZE'])
 
+
+
+###------------Misc Helper Functions---------------------------------------
+
+def cj_count(cj_count):
+	#counts cases of creates and joins given a NBB/NBO CJ DB
+	create_count_dict = defaultdict(int)
+	join_count_dict = defaultdict(int)
+	for i,line in enumerate(cj_count.itertuples(index = False)):
+	    try:
+	        ex = list(line.Creates.items())[0][0]
+	        create_count_dict[ex] += 1
+	    except:
+	        try:
+	            ex = list(line.Joins.items())[0][0]
+	            join_count_dict[ex] += 1
+	        except:
+	            continue
+	return create_count_dict,join_count_dict
+
+###-------------------------------------------------------
 
 def main():
     # print(dict_create('./exchange_code_dict.csv'))
