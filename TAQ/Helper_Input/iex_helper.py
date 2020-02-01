@@ -1,9 +1,10 @@
-###DataFrame Preperation for IEX Class
+# DataFrame Preperation for IEX Class
 
 import pandas as pd
 import numpy as np
 import sklearn as sk
-import sys, os
+import sys
+import os
 import csv
 from datetime import datetime
 import os
@@ -80,7 +81,7 @@ class Quote_Wrangler:
 
         """
         BBO = self.quotes_df[(self.quotes_df['QU_COND'] == 'O') | (self.quotes_df['QU_COND'] == 'R') | (
-                    self.quotes_df['QU_COND'] == 'Y')]
+            self.quotes_df['QU_COND'] == 'Y')]
         return BBO
 
     def NB_combiner(self, exchange_filter=''):
@@ -233,7 +234,7 @@ class Quote_Wrangler:
         vol_ex_idx = np.where(cols == vol_ex)[0][0]
 
         start_price = nb_df.iloc[0][side]
-        for i, cur_line in enumerate(nb_df.itertuples(index = False)):
+        for i, cur_line in enumerate(nb_df.itertuples(index=False)):
             cur_price = cur_line[side_idx]
             if i == 0:
                 prev_line = cur_line
@@ -264,92 +265,92 @@ class Quote_Wrangler:
 
 
 # Archived
-# 	#TODO: join - only increases in volume!!
-# 	#check why empty dictionaries in creates
-# 		#COLUMNS are backwards
+#   #TODO: join - only increases in volume!!
+#   #check why empty dictionaries in creates
+#       #COLUMNS are backwards
 
-# 	###not correct - need to work with book by exchange####
+#   ###not correct - need to work with book by exchange####
 
-# 	"""either feed in NBO or NBB only dataframes
-# 	nb_df is either NBO or NBB df
-# 	NBB_flag True when using NBB data, False for NBO"""
-# 	temp = nb_df.copy()
-# 	creates = ['']
-# 	joins = ['']
-# 	# fallback = ['']
-# 	if nbb_flag:
-# 		ex_side = 'B_Exchanges'
-# 		side = 'Bid'
-# 		vol = 'B_Vol_Tot'
-# 		vol_ex = 'B_Vol_Ex'
-# 		way = 1 #using this we can switch from < to > when comparing previous levels (< is for Bids, > is for Asks)
-# 	else:
-# 		ex_side = 'A_Exchanges'
-# 		side = 'Ask'
-# 		vol = 'A_Vol_Tot'
-# 		vol_ex = 'A_Vol_Ex'
-# 		way = -1
+#   """either feed in NBO or NBB only dataframes
+#   nb_df is either NBO or NBB df
+#   NBB_flag True when using NBB data, False for NBO"""
+#   temp = nb_df.copy()
+#   creates = ['']
+#   joins = ['']
+#   # fallback = ['']
+#   if nbb_flag:
+#       ex_side = 'B_Exchanges'
+#       side = 'Bid'
+#       vol = 'B_Vol_Tot'
+#       vol_ex = 'B_Vol_Ex'
+#       way = 1 #using this we can switch from < to > when comparing previous levels (< is for Bids, > is for Asks)
+#   else:
+#       ex_side = 'A_Exchanges'
+#       side = 'Ask'
+#       vol = 'A_Vol_Tot'
+#       vol_ex = 'A_Vol_Ex'
+#       way = -1
 
-# 	for i in range(1,len(nb_df)):
-# 		create_instance = ''
-# 		join_instance = ''
-# 		# fallback = ''
+#   for i in range(1,len(nb_df)):
+#       create_instance = ''
+#       join_instance = ''
+#       # fallback = ''
 
-# 		if way*nb_df.iloc[i][side] > way*nb_df.iloc[i-1][side]:
-# 			create_instance = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
-# 		elif (nb_df.iloc[i][side] == nb_df.iloc[i-1][side]):
-# 			prev_status_dict = dict(zip(nb_df.iloc[i-1][ex_side],nb_df.iloc[i-1][vol_ex]))
-# 			current_status_dict = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
-# 			join_instance = {k:v for k,v in current_status_dict.items() if k not in prev_status_dict.keys()}
+#       if way*nb_df.iloc[i][side] > way*nb_df.iloc[i-1][side]:
+#           create_instance = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
+#       elif (nb_df.iloc[i][side] == nb_df.iloc[i-1][side]):
+#           prev_status_dict = dict(zip(nb_df.iloc[i-1][ex_side],nb_df.iloc[i-1][vol_ex]))
+#           current_status_dict = dict(zip(nb_df.iloc[i][ex_side],nb_df.iloc[i][vol_ex]))
+#           join_instance = {k:v for k,v in current_status_dict.items() if k not in prev_status_dict.keys()}
 
-# 			# joining_exchanges = [ex for ex in nb_df.iloc[i][ex_side] if ex not in nb_df.iloc[i-1][ex_side]]
-# 			# joining_amount = float(nb_df.iloc[i][vol]) - float(nb_df.iloc[i-1][vol])
-# 			# join_instance = [joining_exchanges,joining_amount]
+#           # joining_exchanges = [ex for ex in nb_df.iloc[i][ex_side] if ex not in nb_df.iloc[i-1][ex_side]]
+#           # joining_amount = float(nb_df.iloc[i][vol]) - float(nb_df.iloc[i-1][vol])
+#           # join_instance = [joining_exchanges,joining_amount]
 
-# 		creates.append(create_instance)
-# 		joins.append(join_instance)
+#       creates.append(create_instance)
+#       joins.append(join_instance)
 
-# 	temp['Creates'] = creates
-# 	temp['Joins'] = joins
+#   temp['Creates'] = creates
+#   temp['Joins'] = joins
 
-# 	return temp
+#   return temp
 
 
 # def NBO_combiner(self): #OLD VERSION DONT SCREW THIS ONE UP
-# 	filtered_df = self.BBO_series()
-# 	#[bid,bid_size,ask,ask_size]
-# 	ex_bid_price = {k:0 for k in self.exchange_map.keys()}
-# 	ex_bid_size = ex_bid_price.copy()
-# 	ex_ask_price = ex_bid_price.copy()
-# 	ex_ask_size = ex_bid_price.copy()
-# 	master = []
-# 	# cols = ['BID','BIDSIZ','ASK','ASKSIZ']
-# 	cols = ['BID']
-# 	prev_best_bid = 0
-# 	for msg in range(len(filtered_df)):
-# 		#update dictionaries
-# 		ex_bid_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['BID'].iloc[msg]) #update dict
-# 		ex_bid_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['BIDSIZ'].iloc[msg]) #update dict
-# 		ex_ask_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASK'].iloc[msg]) #update dict
-# 		ex_ask_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASKSIZ'].iloc[msg]) #update dict
-# 		itemMaxBid = max(ex_bid_price.items(), key=lambda x: x[1]) #find new max
-# 		ex_at_nbb = list()
-# 		# Iterate over all the items in dictionary to find keys with max value
-# 		for key, value in ex_bid_price.items():
-# 			if value == itemMaxBid[1]:
-# 				ex_at_nbb.append(key) #there should always be one max?
-# 		if itemMaxBid[1] != prev_best_bid:
-# 			best_bid = itemMaxValue[1]
-# 			bid_vol = sum(ex_bid_size[ex] for ex in ex_at_nbb)
-# 			best_ask = ex_ask_price[ex_at_nbb[0]] #not sure
-# 			ask_vol = sum(ex_ask_size[ex] for ex in ex_at_nbb) #notsure
-# 			exchanges = ex_at_nbb
-# 			time = filtered_df['Time'].iloc[msg]
-# 			master.append([time,exchanges,best_bid,bid_vol,best_ask,ask_vol])
-# 			prev_best_bid = best_bid
-# 	master_df = pd.DataFrame(master)
-# 	master_df.columns = ['Time','Exchanges','National Best Bid','Bid Size Total', 'Best Ask', 'Ask Vol']
-# 	return master_df
+#   filtered_df = self.BBO_series()
+#   #[bid,bid_size,ask,ask_size]
+#   ex_bid_price = {k:0 for k in self.exchange_map.keys()}
+#   ex_bid_size = ex_bid_price.copy()
+#   ex_ask_price = ex_bid_price.copy()
+#   ex_ask_size = ex_bid_price.copy()
+#   master = []
+#   # cols = ['BID','BIDSIZ','ASK','ASKSIZ']
+#   cols = ['BID']
+#   prev_best_bid = 0
+#   for msg in range(len(filtered_df)):
+#       #update dictionaries
+#       ex_bid_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['BID'].iloc[msg]) #update dict
+#       ex_bid_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['BIDSIZ'].iloc[msg]) #update dict
+#       ex_ask_price[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASK'].iloc[msg]) #update dict
+#       ex_ask_size[filtered_df['EX'].iloc[msg]] = float(filtered_df['ASKSIZ'].iloc[msg]) #update dict
+#       itemMaxBid = max(ex_bid_price.items(), key=lambda x: x[1]) #find new max
+#       ex_at_nbb = list()
+#       # Iterate over all the items in dictionary to find keys with max value
+#       for key, value in ex_bid_price.items():
+#           if value == itemMaxBid[1]:
+#               ex_at_nbb.append(key) #there should always be one max?
+#       if itemMaxBid[1] != prev_best_bid:
+#           best_bid = itemMaxValue[1]
+#           bid_vol = sum(ex_bid_size[ex] for ex in ex_at_nbb)
+#           best_ask = ex_ask_price[ex_at_nbb[0]] #not sure
+#           ask_vol = sum(ex_ask_size[ex] for ex in ex_at_nbb) #notsure
+#           exchanges = ex_at_nbb
+#           time = filtered_df['Time'].iloc[msg]
+#           master.append([time,exchanges,best_bid,bid_vol,best_ask,ask_vol])
+#           prev_best_bid = best_bid
+#   master_df = pd.DataFrame(master)
+#   master_df.columns = ['Time','Exchanges','National Best Bid','Bid Size Total', 'Best Ask', 'Ask Vol']
+#   return master_df
 
 
 """---------------------TRADE WRANGLER CLASS------------------------------------"""
@@ -361,11 +362,11 @@ class Trade_Wrangler():
         self.my_dir = my_dir
         self.exchange_map = dict_create(self.my_dir + '.\exchange_code_dict.csv')
         self.trades['DateTime'] = self.trades['DATE'].map(str)
-        self.trades['DateTime'] = self.trades['DateTime'].apply(lambda x: \
-                                                                    datetime.strptime(x[:], "%Y%m%d"))
-        self.trades['Time'] = self.trades['TIME_M'].apply(lambda x: \
-                                                              datetime.strptime(x[:-3],
-                                                                                "%H:%M:%S.%f").time().isoformat())
+        self.trades['DateTime'] = self.trades['DateTime'].apply(lambda x:
+                                                                datetime.strptime(x[:], "%Y%m%d"))
+        self.trades['Time'] = self.trades['TIME_M'].apply(lambda x:
+                                                          datetime.strptime(x[:-3],
+                                                                            "%H:%M:%S.%f").time().isoformat())
         self.columns = ['DateTime', 'Time', 'EX', 'SYM_ROOT', 'TR_SCOND', 'SIZE', 'PRICE', 'TR_CORR', 'TR_SOURCE',
                         'TR_RF']
         self.trades = self.trades[self.columns]
