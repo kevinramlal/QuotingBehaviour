@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 # DataFrame Preperation for IEX Class
 
+=======
+###DataFrame Preperation for IEX Class
+from collections import defaultdict
+>>>>>>> 309dbb3b57977eb866531f197a8396ce3e304754
 import pandas as pd
 import numpy as np
 import sklearn as sk
@@ -7,6 +12,7 @@ import sys
 import os
 import csv
 from datetime import datetime
+
 import os
 
 '''
@@ -64,6 +70,7 @@ class Quote_Wrangler:
         # time formatting
         self.quotes_df['DateTime'] = pd.to_datetime(self.quotes_df['DATE'], format="%Y%m%d")
         self.quotes_df['Time'] = pd.to_datetime(self.quotes_df['TIME_M'], format='%H:%M:%S.%f')
+        self.quotes_df['Time'] = self.quotes_df['Time'].apply(lambda x: str(x.time())) #gets just the time 
 
         # list of columns to be used - can edit in file
         self.quotes_cols = list_from_csv(self.my_dir + '.\quotes_columns.csv')
@@ -242,8 +249,8 @@ class Quote_Wrangler:
             if cur_price != start_price:
                 start_price = cur_price
                 prev_line = cur_line
-                create_master.append([''])
-                join_master.append([''])
+                create_master.append('')
+                join_master.append('')
                 continue
             prev_state = dict(zip(prev_line[ex_side_idx], prev_line[vol_ex_idx]))
             cur_state = dict(zip(cur_line[ex_side_idx], cur_line[vol_ex_idx]))
@@ -252,6 +259,11 @@ class Quote_Wrangler:
             joins = {i: (cur_state[i] - prev_state[i]) for i in cur_state.keys() if
                      (i in prev_state.keys()) and ((cur_state[i] - prev_state[i]) > 0)}
 
+            if creates == {}:
+            	creates = ''
+            if joins == {}:
+            	joins = '' 
+            
             create_master.append(creates)
             join_master.append(joins)
             prev_line = cur_line
@@ -261,6 +273,7 @@ class Quote_Wrangler:
 
         return nb_df
 
+<<<<<<< HEAD
 # def create_join_flagger(self,nb_df,nbb_flag = True):
 
 
@@ -352,6 +365,8 @@ class Quote_Wrangler:
 #   master_df.columns = ['Time','Exchanges','National Best Bid','Bid Size Total', 'Best Ask', 'Ask Vol']
 #   return master_df
 
+=======
+>>>>>>> 309dbb3b57977eb866531f197a8396ce3e304754
 
 """---------------------TRADE WRANGLER CLASS------------------------------------"""
 
@@ -395,6 +410,27 @@ class Trade_Wrangler():
         trades = self.trade_finder(time, num_trades, time_after)
         return sum(trades['SIZE'])
 
+
+
+###------------Misc Helper Functions---------------------------------------
+
+def cj_count(cj_count):
+	#counts cases of creates and joins given a NBB/NBO CJ DB
+	create_count_dict = defaultdict(int)
+	join_count_dict = defaultdict(int)
+	for i,line in enumerate(cj_count.itertuples(index = False)):
+	    try:
+	        ex = list(line.Creates.items())[0][0]
+	        create_count_dict[ex] += 1
+	    except:
+	        try:
+	            ex = list(line.Joins.items())[0][0]
+	            join_count_dict[ex] += 1
+	        except:
+	            continue
+	return create_count_dict,join_count_dict
+
+###-------------------------------------------------------
 
 def main():
     # print(dict_create('./exchange_code_dict.csv'))
