@@ -1,10 +1,6 @@
-<<<<<<< HEAD
 # DataFrame Preperation for IEX Class
-
-=======
-###DataFrame Preperation for IEX Class
+# DataFrame Preperation for IEX Class
 from collections import defaultdict
->>>>>>> 309dbb3b57977eb866531f197a8396ce3e304754
 import pandas as pd
 import numpy as np
 import sklearn as sk
@@ -13,14 +9,12 @@ import os
 import csv
 from datetime import datetime
 
-import os
-
 '''
 There are two main types of files, Stock QUotes File, and Trade File
 The Goal of this file if to create a dataframe class that extracts generic
 information from the input files.
 '''
-import os
+
 
 my_dir = os.path.dirname(__file__)
 
@@ -65,15 +59,17 @@ class Quote_Wrangler:
         '''
         self.my_dir = my_dir
         self.quotes_df = pd.read_csv(quotes_file, low_memory=False)  # TAQ Quotes file
-        self.exchange_map = dict_create(self.my_dir + '.\exchange_code_dict.csv')  # copied from NYSE TAQ Documentation
+        self.exchange_map = dict_create(self.my_dir + '/exchange_code_dict.csv')  # copied from NYSE TAQ Documentation
 
         # time formatting
-        self.quotes_df['DateTime'] = pd.to_datetime(self.quotes_df['DATE'], format="%Y%m%d")
-        self.quotes_df['Time'] = pd.to_datetime(self.quotes_df['TIME_M'], format='%H:%M:%S.%f')
-        self.quotes_df['Time'] = self.quotes_df['Time'].apply(lambda x: str(x.time())) #gets just the time 
+        self.quotes_df['Datetime'] = pd.to_datetime(self.quotes_df['DATE'].astype('str') + " " + self.quotes_df["TIME_M"], format="%Y%m%d %H:%M:%S.%f")
+        self.quotes_df['Date'] = self.quotes_df['Datetime'].dt.date
+        self.quotes_df['Time'] = self.quotes_df['Datetime'].dt.time
+
+        # self.quotes_df['Time'] = self.quotes_df['Time'].apply(lambda x: str(x.time()))  # gets just the time
 
         # list of columns to be used - can edit in file
-        self.quotes_cols = list_from_csv(self.my_dir + '.\quotes_columns.csv')
+        self.quotes_cols = list_from_csv(self.my_dir + '/quotes_columns.csv')
         self.quotes_df = self.quotes_df[self.quotes_cols]
         self.NB_master = self.NB_combiner()
 
@@ -260,10 +256,10 @@ class Quote_Wrangler:
                      (i in prev_state.keys()) and ((cur_state[i] - prev_state[i]) > 0)}
 
             if creates == {}:
-            	creates = ''
+                creates = ''
             if joins == {}:
-            	joins = '' 
-            
+                joins = ''
+
             create_master.append(creates)
             join_master.append(joins)
             prev_line = cur_line
@@ -273,7 +269,26 @@ class Quote_Wrangler:
 
         return nb_df
 
-<<<<<<< HEAD
+    def get_mid_quote(self, shift: int=0):
+        """
+        Get mid quote price given the consolideted order book.
+        :param shift: int, time shift by seconds.
+        :return res: series of mid quote price
+        """
+        if shift == 0:
+            res = pd.Series(data=((self.quotes_df['BID'] + self.quotes_df['ASK']) / 2).values, index=self.quotes_df['Datetime'], name='mid-quote')
+        else:
+            # find the first tick after n seconds
+            res = pd.Series(index=self.quotes_df['Datetime'], name='mid-quote')
+            datetime = self.quotes_df['Datetime']
+            # Loop is a bit slow, but still musch faster than apply. Feel free to optimize this part.
+            for i, t in dt.items():
+                ind = (((datetime[i:(i + shift * 1000)] - t).dt.total_seconds() // shift) > 0).idxmax()  # assume the target is in the next 1000 * shift rows
+                result.iloc[i] = self.quotes_df.loc[ind, ['ASK', 'BID']].sum() / 2
+            res.iloc[1 - shift:] = np.nan
+        return res
+
+
 # def create_join_flagger(self,nb_df,nbb_flag = True):
 
 
@@ -365,8 +380,6 @@ class Quote_Wrangler:
 #   master_df.columns = ['Time','Exchanges','National Best Bid','Bid Size Total', 'Best Ask', 'Ask Vol']
 #   return master_df
 
-=======
->>>>>>> 309dbb3b57977eb866531f197a8396ce3e304754
 
 """---------------------TRADE WRANGLER CLASS------------------------------------"""
 
@@ -411,26 +424,26 @@ class Trade_Wrangler():
         return sum(trades['SIZE'])
 
 
-
-###------------Misc Helper Functions---------------------------------------
+# ------------Misc Helper Functions---------------------------------------
 
 def cj_count(cj_count):
-	#counts cases of creates and joins given a NBB/NBO CJ DB
-	create_count_dict = defaultdict(int)
-	join_count_dict = defaultdict(int)
-	for i,line in enumerate(cj_count.itertuples(index = False)):
-	    try:
-	        ex = list(line.Creates.items())[0][0]
-	        create_count_dict[ex] += 1
-	    except:
-	        try:
-	            ex = list(line.Joins.items())[0][0]
-	            join_count_dict[ex] += 1
-	        except:
-	            continue
-	return create_count_dict,join_count_dict
+        # counts cases of creates and joins given a NBB/NBO CJ DB
+    create_count_dict = defaultdict(int)
+    join_count_dict = defaultdict(int)
+    for i, line in enumerate(cj_count.itertuples(index=False)):
+        try:
+            ex = list(line.Creates.items())[0][0]
+            create_count_dict[ex] += 1
+        except:
+            try:
+                ex = list(line.Joins.items())[0][0]
+                join_count_dict[ex] += 1
+            except:
+                continue
+    return create_count_dict, join_count_dict
 
-###-------------------------------------------------------
+# -------------------------------------------------------
+
 
 def main():
     # print(dict_create('./exchange_code_dict.csv'))
