@@ -269,6 +269,8 @@ class Quote_Wrangler:
 
         return nb_df
 
+
+
     def get_mid_quote(self, shift: int=0):
         """
         Get mid quote price given the consolideted order book.
@@ -291,7 +293,22 @@ class Quote_Wrangler:
             res.iloc[1 - shift:] = np.nan
         return res
 
-
+"""--------------------------Helper Functions for Probabilitiy----------------------"""
+def get_next_mid(nb_df):
+    """
+    Takes in df with MID, and returns same df with MID_next
+    Returns same df with column for next change in mid price 
+    """
+    original_cols = list(nb_df.columns)
+    original_cols += ['Mid_Next']
+    
+    mid_changes = nb_df.loc[nb_df.Mid.shift(1) != nb_df.Mid][['Mid']]
+    nb_df = pd.merge(nb_df, mid_changes, how='left',left_index = True, right_index = True)
+    nb_df.Mid_y = nb_df.Mid_y.fillna(method = 'bfill').shift(-1)
+    nb_df.columns = original_cols
+    return nb_df 
+    
+    
 
 """---------------------TRADE WRANGLER CLASS------------------------------------"""
 
