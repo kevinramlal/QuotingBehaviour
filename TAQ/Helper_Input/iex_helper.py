@@ -269,8 +269,6 @@ class Quote_Wrangler:
 
         return nb_df
 
-
-
     def get_mid_quote(self, shift: int=0):
         """
         Get mid quote price given the consolideted order book.
@@ -307,6 +305,69 @@ def get_next_mid(nb_df):
     nb_df.Mid_y = nb_df.Mid_y.fillna(method = 'bfill').shift(-1)
     nb_df.columns = original_cols
     return nb_df 
+
+def probability_master_func(QW,exch):
+    """
+    Takes in NBBO object db and spits out prob db
+    Example input: <Quote_Wrangler>.NB_master
+    
+    exch should be list of exchange codes.
+    For all exchanges - use list(<Quote_Wrangler>.exchange_map.keys())
+    """
+    NBB_all = QW.cj_flagger(nbb_flag = True)    
+    NBO_all = QW.cj_flagger(nbb_flag = False)
+    NBBO_cj_Master = NBB_all.append(NBO_all)
+    NBBO_cj_Master = NBBO_cj_Master.sort_values(by = 'Time')
+    NBX = get_next_mid(NBBO_cj_Master)
+    
+    NBX['Mid_Change'] = NBX.Mid_Next - NBX.Mid
+    
+    prob_matrix = np.empty([len(exch),4])
+    NBX_BB = NBX[NBX.Flag == 'NBB']
+    NBX_BO = NBX[NBX.Flag == 'NBO']
+    for i in range(len(exch)):
+        ex = exch[i]
+        NBX_BB_ex = NBX_BB.copy()
+        NBX_BO_ex = NBX_BO.copy()
+        
+        NBX_BB_ex['Ex_Flag'] =  NBX_BB_ex.B_Exchanges.apply(lambda x :ex in x)
+        NBX_BB_ex = NBX_BB_ex[NBX_BB_ex.Ex_Flag == True]
+
+        NBX_BO_ex['Ex_Flag'] =  NBX_BO_ex.A_Exchanges.apply(lambda x :ex in x)
+        NBX_BO_ex = NBX_BO_ex[NBX_BO_ex.Ex_Flag == True]
+            
+        NBX_BB_ex_C = NBX_BB_ex[NBX_BB_ex.Creates != '']
+        NBX_BB_ex_J = NBX_BB_ex[NBX_BB_ex.Joins != '']
+
+        NBX_BO_ex_C = NBX_BO_ex[NBX_BO_ex.Creates != '']
+        NBX_BO_ex_J = NBX_BO_ex[NBX_BO_ex.Joins != '']
+        
+        try:
+            prob_BB_c = sum(np.array(NBX_BB_ex_C.Mid_Change > 0))/len(NBX_BB_ex_C)
+        except:
+            prob_BB_c = 0
+        try:
+            prob_BB_j = sum(np.array(NBX_BB_ex_J.Mid_Change > 0))/len(NBX_BB_ex_J)
+        except:
+            prob_BB_j = 0
+        try:
+            prob_BO_c = sum(np.array(NBX_BO_ex_C.Mid_Change > 0))/len(NBX_BO_ex_C)
+        except:
+            prob_BO_c = 0
+        try:
+            prob_BO_j = sum(np.array(NBX_BO_ex_J.Mid_Change > 0))/len(NBX_BO_ex_J)
+        except:
+            prob_BO_j = 0
+            
+            
+        prob_matrix[i,0] = prob_BB_c
+        prob_matrix[i,1] = prob_BB_j
+        prob_matrix[i,2] = prob_BO_c
+        prob_matrix[i,3] = prob_BO_j
+    prob_df = pd.DataFrame(prob_matrix)
+    prob_df.index = exch
+    prob_df.columns = ['Best_Bid_Creates','Best_Bid_Joins','Best_Offer_Creates','Best_Offer_Joins']
+    return prob_df
     
     
 
@@ -372,6 +433,14 @@ def cj_count(cj_count):
     return create_count_dict, join_count_dict
 
 # -------------------------------------------------------
+
+# ------------ Probability Analysis Functions-----------------
+
+
+
+
+
+
 
 
 def main():
