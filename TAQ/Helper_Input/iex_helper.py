@@ -27,7 +27,6 @@ def dict_create(input_file):
 
     return mydict
 
-
 def list_from_csv(input_file):
     """same as the name"""
     with open(input_file, mode='r') as f:
@@ -135,6 +134,7 @@ class Quote_Wrangler:
             # Finding the Best Bid and Best Ask
             itemMaxBid = max(ex_bid_price.items(), key=lambda x: x[1])  # find new max (this is a cool peice of code)
             itemMaxOffer = min(ex_ask_price.items(), key=lambda x: x[1])  # find new min
+
             ex_at_nbb = list()
             ex_at_nbo = list()
             # Iterate over all the items in dictionary to find keys (exchanges) with max bid as there can be more than one
